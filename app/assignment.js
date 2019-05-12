@@ -1,23 +1,38 @@
 // Module dependencies.
 const { printResults, moveForward, moveBackwards, rotateClockwise, rotateCounterlockwise } = require('./commands');
-const { positionCheck, } = require('./object');
+const { objectCreate, positionCheck, addCommands, sizeOfHeader } = require('./object');
 
 // Global variables. 
-let object = {
-    // Size of tabel width x height.
-    matrix: {
-        width: 4,
-        height: 4
-    },
-    // Starting position.
-    position: {
-        positionX: 2,
-        positionY: 2,
-        direction: 'N'
-    },
-    // List of commands to perform.
-    commands: [1, 4, 1, 3, 2, 3, 2, 4, 1, 0]
-};
+let buffer = Buffer.allocUnsafe(0);
+let object = null;
+
+// Getting data from stdin. 
+process.stdin.on('data', (chunk) => {
+    // Checks if object existe.
+    if (object) {
+        // Fills commands array of object when receive new chunk of data.  
+        addCommands(object, chunk, 0);
+        // Moves object according to commands.
+        movingObject(object);
+    } else {
+        // Concats buffer of two parts of data.
+        buffer = Buffer.concat([buffer, chunk]);
+
+        // Checks if buffer is long enough to create at least object matrix and position.
+        // If it is true, object is created.
+        if (buffer.length >= sizeOfHeader) {
+            object = objectCreate(buffer);
+            // If object was created sucessfully, function movingObject is called.
+            if (object) {
+                movingObject(object);
+            } else {
+                // If creation of object failed, program stops and returns [-1,-1] to stdout.  
+                let positionOutside = { positionX: -1, positionY: -1 };
+                printResults(positionOutside);
+            };
+        };
+    };
+});
 
 // Function simulates movment of object on the table.
 // Every step depends on the task from command array.
@@ -60,5 +75,3 @@ const movingObject = (data) => {
         };
     };
 };
-
-movingObject(object);
